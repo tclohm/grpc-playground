@@ -33,7 +33,6 @@ func NewGreetServiceClient(cc grpc.ClientConnInterface) GreetServiceClient {
 // All implementations must embed UnimplementedGreetServiceServer
 // for forward compatibility
 type GreetServiceServer interface {
-	mustEmbedUnimplementedGreetServiceServer()
 }
 
 // UnimplementedGreetServiceServer must be embedded to have forward compatible implementations.
