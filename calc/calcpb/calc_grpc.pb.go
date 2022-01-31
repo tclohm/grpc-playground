@@ -47,7 +47,7 @@ func (c *sumServiceClient) Sum(ctx context.Context, in *SumRequest, opts ...grpc
 // for forward compatibility
 type SumServiceServer interface {
 	Sum(context.Context, *SumRequest) (*SumResponse, error)
-	mustEmbedUnimplementedSumServiceServer()
+	//mustEmbedUnimplementedSumServiceServer()
 }
 
 // UnimplementedSumServiceServer must be embedded to have forward compatible implementations.

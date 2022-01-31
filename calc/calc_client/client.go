@@ -22,7 +22,7 @@ func main() {
 
 	defer conn.Close()
 
-	c := calcpb.NewGreetServiceClient(conn)
+	c := calcpb.NewSumServiceClient(conn)
 
 	//fmt.Printf("Created client: %f", c)
 
@@ -34,7 +34,7 @@ func unaryRequest(c calcpb.SumServiceClient) {
 	fmt.Println("starting unary RPC...")
 	req := &calcpb.SumRequest{
 		Sum: &calcpb.Sum{
-			firstNumber: 10,
+			FirstNumber: 10,
 			SecondNumber: 2,
 		},
 	}
