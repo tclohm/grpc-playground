@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"log"
+	//"time"
 
 	"github.com/tclohm/grpc-playground/calc/calcpb"
 
@@ -26,6 +27,29 @@ func (*server) Sum(ctx context.Context, req *calcpb.SumRequest) (*calcpb.SumResp
 	}
 
 	return res, nil
+}
+
+func (*server) SumManyTimes(req *calcpb.SumManyTimesRequest, stream calcpb.SumService_SumManyTimesServer) error {
+	log.Printf("Sum many times invoked with %v", req)
+
+	var firstNumber int32 = req.GetSum().GetFirstNumber()
+	
+	var constant int32 = 2
+
+	for firstNumber > 1  {
+		if firstNumber % constant == 0 {
+			
+			res := &calcpb.SumManyTimesResponse{
+				Result: constant,
+			}
+			stream.Send(res)
+			firstNumber = firstNumber / constant
+		} else {
+			constant += 1
+		}
+	}
+
+	return nil
 }
 
 func main() {
