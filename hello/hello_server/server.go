@@ -7,6 +7,7 @@ import (
 	"log"
 	"strconv"
 	"time"
+	"io"
 
 	"github.com/tclohm/grpc-playground/hello/hellopb"
 
@@ -40,6 +41,30 @@ func (*server) HelloManyTimes(req *hellopb.HelloManyTimesRequest, stream hellopb
 		time.Sleep(1000 * time.Millisecond)
 	}
 	return nil
+}
+
+func (*server) LongHello(stream hellopb.HelloService_LongHelloServer) error {
+
+	fmt.Printf("Long hello invoked with streaming request\n")
+
+	var result string = ""
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			// finished reading client stream
+			return stream.SendAndClose(&hellopb.LongHelloResponse{
+				Result: result,
+			})
+		}
+
+		if err != nil {
+			log.Fatalf("Error while reading client stream: %v", err)
+		}
+
+		firstName := req.GetHello().GetFirstName()
+		result += "Hello " + firstName + "! "
+	}
 }
 
 func main() {
