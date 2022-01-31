@@ -16,6 +16,16 @@ message SumResponse {
 	int32 result = 1;
 }
 
+message SumManyTimesRequest {
+	Sum sum = 1;
+}
+
+message SumManyTimesResponse {
+	int32 result = 1;
+}
+
 service SumService {
 	rpc Sum(SumRequest) returns (SumResponse) {}
+
+	rpc SumManyTimes(SumManyTimesRequest) returns (stream SumManyTimesResponse) {}
 }

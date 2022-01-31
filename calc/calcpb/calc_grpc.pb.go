@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SumServiceClient interface {
 	Sum(ctx context.Context, in *SumRequest, opts ...grpc.CallOption) (*SumResponse, error)
+	SumManyTimes(ctx context.Context, in *SumManyTimesRequest, opts ...grpc.CallOption) (SumService_SumManyTimesClient, error)
 }
 
 type sumServiceClient struct {
@@ -42,11 +43,44 @@ func (c *sumServiceClient) Sum(ctx context.Context, in *SumRequest, opts ...grpc
 	return out, nil
 }
 
+func (c *sumServiceClient) SumManyTimes(ctx context.Context, in *SumManyTimesRequest, opts ...grpc.CallOption) (SumService_SumManyTimesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &SumService_ServiceDesc.Streams[0], "/calc.SumService/SumManyTimes", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &sumServiceSumManyTimesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type SumService_SumManyTimesClient interface {
+	Recv() (*SumManyTimesResponse, error)
+	grpc.ClientStream
+}
+
+type sumServiceSumManyTimesClient struct {
+	grpc.ClientStream
+}
+
+func (x *sumServiceSumManyTimesClient) Recv() (*SumManyTimesResponse, error) {
+	m := new(SumManyTimesResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // SumServiceServer is the server API for SumService service.
 // All implementations must embed UnimplementedSumServiceServer
 // for forward compatibility
 type SumServiceServer interface {
 	Sum(context.Context, *SumRequest) (*SumResponse, error)
+	SumManyTimes(*SumManyTimesRequest, SumService_SumManyTimesServer) error
 	//mustEmbedUnimplementedSumServiceServer()
 }
 
@@ -56,6 +90,9 @@ type UnimplementedSumServiceServer struct {
 
 func (UnimplementedSumServiceServer) Sum(context.Context, *SumRequest) (*SumResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Sum not implemented")
+}
+func (UnimplementedSumServiceServer) SumManyTimes(*SumManyTimesRequest, SumService_SumManyTimesServer) error {
+	return status.Errorf(codes.Unimplemented, "method SumManyTimes not implemented")
 }
 func (UnimplementedSumServiceServer) mustEmbedUnimplementedSumServiceServer() {}
 
@@ -88,6 +125,27 @@ func _SumService_Sum_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SumService_SumManyTimes_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SumManyTimesRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(SumServiceServer).SumManyTimes(m, &sumServiceSumManyTimesServer{stream})
+}
+
+type SumService_SumManyTimesServer interface {
+	Send(*SumManyTimesResponse) error
+	grpc.ServerStream
+}
+
+type sumServiceSumManyTimesServer struct {
+	grpc.ServerStream
+}
+
+func (x *sumServiceSumManyTimesServer) Send(m *SumManyTimesResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // SumService_ServiceDesc is the grpc.ServiceDesc for SumService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -100,6 +158,12 @@ var SumService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SumService_Sum_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SumManyTimes",
+			Handler:       _SumService_SumManyTimes_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "calc/calcpb/calc.proto",
 }
