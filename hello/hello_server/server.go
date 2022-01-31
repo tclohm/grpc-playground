@@ -67,6 +67,35 @@ func (*server) LongHello(stream hellopb.HelloService_LongHelloServer) error {
 	}
 }
 
+func (*server) HelloEveryone(stream hellopb.HelloService_HelloEveryoneServer) error {
+	fmt.Printf("Hello everyone invoked with bi-dir streaming")
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+
+		if err != nil {
+			log.Fatalf("Error while reading client stream: %v", err)
+			return err
+		}
+
+		firstname := req.GetHello().GetFirstName()
+
+		result := "Hello " + firstname + "!"
+
+		err = stream.Send(&hellopb.HelloEveryoneResponse{
+			Result: result,
+		})
+
+		if err != nil {
+			log.Fatalf("Error while sending data to client: %v", err)
+			return err
+		}
+	}
+}
+
 func main() {
 	fmt.Println("Hello world!")
 
