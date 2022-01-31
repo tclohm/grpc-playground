@@ -32,7 +32,9 @@ func main() {
 
 	//serverStreaming(c)
 
-	clientStreaming(c)
+	//clientStreaming(c)
+
+	biStreaming(c)
 
 }
 
@@ -139,4 +141,77 @@ func clientStreaming(c hellopb.HelloServiceClient) {
 	}
 
 	fmt.Printf("Long hello response: %v\n", res)
+}
+
+func biStreaming(c hellopb.HelloServiceClient) {
+	fmt.Println("Starting bi-directional streaming RPC...")
+
+	// create stream
+	stream, err := c.HelloEveryone(context.Background())
+	if err != nil {
+		log.Fatalf("Error creating stream: $v", err)
+		return
+	}
+
+	requests := []*hellopb.HelloEveryoneRequest{
+		&hellopb.HelloEveryoneRequest{
+			Hello: &hellopb.Hello{
+				FirstName: "Taylor",
+			},
+		},
+
+		&hellopb.HelloEveryoneRequest{
+			Hello: &hellopb.Hello{
+				FirstName: "Parker",
+			},
+		},
+
+		&hellopb.HelloEveryoneRequest{
+			Hello: &hellopb.Hello{
+				FirstName: "Marta",
+			},
+		},
+
+		&hellopb.HelloEveryoneRequest{
+			Hello: &hellopb.Hello{
+				FirstName: "Mark",
+			},
+		},
+
+		&hellopb.HelloEveryoneRequest{
+			Hello: &hellopb.Hello{
+				FirstName: "Janet",
+			},
+		},
+	}
+
+	waitc := make(chan struct{})
+
+	// send message
+	go func() {
+		for _, req := range requests {
+			fmt.Printf("Sending message: %v\n", req)
+			stream.Send(req)
+			time.Sleep(1000 * time.Millisecond)
+		}
+		stream.CloseSend()
+	}()
+	// receive
+	go func() {
+		for {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				break			}
+			if err != nil {
+				log.Fatalf("Error while receiving: %v", err)
+				close(waitc)
+			}
+
+			fmt.Printf("Received: %v\n", res.GetResult())
+		}
+		close(waitc)
+	}()
+
+	// block until done
+	<-waitc
 }

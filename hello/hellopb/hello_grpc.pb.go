@@ -28,6 +28,8 @@ type HelloServiceClient interface {
 	HelloManyTimes(ctx context.Context, in *HelloManyTimesRequest, opts ...grpc.CallOption) (HelloService_HelloManyTimesClient, error)
 	// Client Streaming
 	LongHello(ctx context.Context, opts ...grpc.CallOption) (HelloService_LongHelloClient, error)
+	// Bi-Directional Streaming
+	HelloEveryone(ctx context.Context, opts ...grpc.CallOption) (HelloService_HelloEveryoneClient, error)
 }
 
 type helloServiceClient struct {
@@ -113,6 +115,37 @@ func (x *helloServiceLongHelloClient) CloseAndRecv() (*LongHelloResponse, error)
 	return m, nil
 }
 
+func (c *helloServiceClient) HelloEveryone(ctx context.Context, opts ...grpc.CallOption) (HelloService_HelloEveryoneClient, error) {
+	stream, err := c.cc.NewStream(ctx, &HelloService_ServiceDesc.Streams[2], "/greet.HelloService/HelloEveryone", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &helloServiceHelloEveryoneClient{stream}
+	return x, nil
+}
+
+type HelloService_HelloEveryoneClient interface {
+	Send(*HelloEveryoneRequest) error
+	Recv() (*HelloEveryoneResponse, error)
+	grpc.ClientStream
+}
+
+type helloServiceHelloEveryoneClient struct {
+	grpc.ClientStream
+}
+
+func (x *helloServiceHelloEveryoneClient) Send(m *HelloEveryoneRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *helloServiceHelloEveryoneClient) Recv() (*HelloEveryoneResponse, error) {
+	m := new(HelloEveryoneResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // HelloServiceServer is the server API for HelloService service.
 // All implementations must embed UnimplementedHelloServiceServer
 // for forward compatibility
@@ -123,6 +156,8 @@ type HelloServiceServer interface {
 	HelloManyTimes(*HelloManyTimesRequest, HelloService_HelloManyTimesServer) error
 	// Client Streaming
 	LongHello(HelloService_LongHelloServer) error
+	// Bi-Directional Streaming
+	HelloEveryone(HelloService_HelloEveryoneServer) error
 	//mustEmbedUnimplementedHelloServiceServer()
 }
 
@@ -138,6 +173,9 @@ func (UnimplementedHelloServiceServer) HelloManyTimes(*HelloManyTimesRequest, He
 }
 func (UnimplementedHelloServiceServer) LongHello(HelloService_LongHelloServer) error {
 	return status.Errorf(codes.Unimplemented, "method LongHello not implemented")
+}
+func (UnimplementedHelloServiceServer) HelloEveryone(HelloService_HelloEveryoneServer) error {
+	return status.Errorf(codes.Unimplemented, "method HelloEveryone not implemented")
 }
 func (UnimplementedHelloServiceServer) mustEmbedUnimplementedHelloServiceServer() {}
 
@@ -217,6 +255,32 @@ func (x *helloServiceLongHelloServer) Recv() (*LongHelloRequest, error) {
 	return m, nil
 }
 
+func _HelloService_HelloEveryone_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(HelloServiceServer).HelloEveryone(&helloServiceHelloEveryoneServer{stream})
+}
+
+type HelloService_HelloEveryoneServer interface {
+	Send(*HelloEveryoneResponse) error
+	Recv() (*HelloEveryoneRequest, error)
+	grpc.ServerStream
+}
+
+type helloServiceHelloEveryoneServer struct {
+	grpc.ServerStream
+}
+
+func (x *helloServiceHelloEveryoneServer) Send(m *HelloEveryoneResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *helloServiceHelloEveryoneServer) Recv() (*HelloEveryoneRequest, error) {
+	m := new(HelloEveryoneRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // HelloService_ServiceDesc is the grpc.ServiceDesc for HelloService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -238,6 +302,12 @@ var HelloService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "LongHello",
 			Handler:       _HelloService_LongHello_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "HelloEveryone",
+			Handler:       _HelloService_HelloEveryone_Handler,
+			ServerStreams: true,
 			ClientStreams: true,
 		},
 	},
