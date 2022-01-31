@@ -24,10 +24,21 @@ message HelloManyTimesResponse {
 	string result = 1;
 }
 
+message LongHelloRequest {
+	Hello hello = 1;
+}
+
+message LongHelloResponse {
+	string result = 1;
+}
+
 service HelloService{
 	// Unary
 	rpc Hello(HelloRequest) returns (HelloResponse) {};
 
 	// Server Streaming
 	rpc HelloManyTimes(HelloManyTimesRequest) returns (stream HelloManyTimesResponse) {}
+
+	// Client Streaming
+	rpc LongHello(stream LongHelloRequest) returns (LongHelloResponse) {}
 }

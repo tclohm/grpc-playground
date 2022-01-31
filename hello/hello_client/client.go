@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"io"
+	"time"
 
 	"github.com/tclohm/grpc-playground/hello/hellopb"
 
@@ -29,7 +30,9 @@ func main() {
 
 	//unaryRequest(c)
 
-	serverStreaming(c)
+	//serverStreaming(c)
+
+	clientStreaming(c)
 
 }
 
@@ -78,4 +81,62 @@ func serverStreaming(c hellopb.HelloServiceClient) {
 		log.Printf("Response from HelloManyTimes: %v", msg.GetResult())
 	}
 
+}
+
+func clientStreaming(c hellopb.HelloServiceClient) {
+	fmt.Println("Starting to do a Client Streaming RPC...")
+
+
+	requests := []*hellopb.LongHelloRequest{
+		&hellopb.LongHelloRequest{
+			Hello: &hellopb.Hello{
+				FirstName: "Taylor",
+			},
+		},
+
+		&hellopb.LongHelloRequest{
+			Hello: &hellopb.Hello{
+				FirstName: "Parker",
+			},
+		},
+
+		&hellopb.LongHelloRequest{
+			Hello: &hellopb.Hello{
+				FirstName: "Marta",
+			},
+		},
+
+		&hellopb.LongHelloRequest{
+			Hello: &hellopb.Hello{
+				FirstName: "Mark",
+			},
+		},
+
+		&hellopb.LongHelloRequest{
+			Hello: &hellopb.Hello{
+				FirstName: "Janet",
+			},
+		},
+	}
+
+
+	stream, err := c.LongHello(context.Background())
+
+	if err != nil {
+		log.Fatalf("error while calling long hello %v", err)
+	}
+
+	for _, req := range requests {
+		fmt.Printf("Sending request %v\n", req)
+		stream.Send(req)
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	res, err := stream.CloseAndRecv()
+
+	if err != nil {
+		log.Fatalf("Error while receiving response from long hello: %v", err)
+	}
+
+	fmt.Printf("Long hello response: %v\n", res)
 }
