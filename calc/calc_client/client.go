@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/tclohm/grpc-playground/greet/greetpb"
+	"github.com/tclohm/grpc-playground/calc/calcpb"
 
 	"google.golang.org/grpc"
 )
@@ -22,7 +22,7 @@ func main() {
 
 	defer conn.Close()
 
-	c := greetpb.NewGreetServiceClient(conn)
+	c := calcpb.NewGreetServiceClient(conn)
 
 	//fmt.Printf("Created client: %f", c)
 
@@ -30,19 +30,19 @@ func main() {
 
 }
 
-func unaryRequest(c greetpb.GreetServiceClient) {
+func unaryRequest(c calcpb.SumServiceClient) {
 	fmt.Println("starting unary RPC...")
-	req := &greetpb.GreetRequest{
-		Greeting: &greetpb.Greeting{
-			FirstName: "Taylor",
-			LastName: "Lohman",
+	req := &calcpb.SumRequest{
+		Sum: &calcpb.Sum{
+			firstNumber: 10,
+			SecondNumber: 2,
 		},
 	}
 
-	res, err := c.Greet(context.Background(), req)
+	res, err := c.Sum(context.Background(), req)
 	if err != nil {
-		log.Fatalf("error while calling Greet RPC: %v", err)
+		log.Fatalf("error while calling Sum RPC: %v", err)
 	}
 
-	log.Printf("Response from Greet: %v", res.Result)
+	log.Printf("Response from Sum: %v", res.Result)
 }

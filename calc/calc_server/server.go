@@ -6,21 +6,22 @@ import (
 	"net"
 	"log"
 
-	"github.com/tclohm/grpc-playground/greet/greetpb"
+	"github.com/tclohm/grpc-playground/calc/calcpb"
 
 	"google.golang.org/grpc"
 )
 
 type server struct {}
 
+func (*server) Sum(ctx context.Context, req *calcpb.SumRequest) (*calcpb.SumResponse, error) {
+	log.Printf("Sum invoked with %v", req)
 
-func (*server) Greet(ctx context.Context, req *greetpb.GreetRequest) (*greetpb.GreetResponse, error) {
-	log.Printf("Greet invoked with %v", req)
-	firstName := req.GetGreeting().GetFirstName()
+	firstNumber := req.GetSum().GetFirstNumber()
+	SecondNumber := req.GetSum().GetSecondNumber()
 
-	result := "Hello " + firstName
+	result := firstNumber + SecondNumber
 
-	res := &greetpb.GreetResponse{
+	res := &calcpb.SumResponse{
 		Result: result,
 	}
 
@@ -28,15 +29,16 @@ func (*server) Greet(ctx context.Context, req *greetpb.GreetRequest) (*greetpb.G
 }
 
 func main() {
-	fmt.Println("Hello world!")
+	fmt.Println("Server on")
 
 	listener, err := net.Listen("tcp", "0.0.0.0:50051")
+
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
 	s := grpc.NewServer()
-	
+
 	greetpb.RegisterGreetServiceServer(s, &server{})
 
 	if err := s.Serve(listener); err != nil {
