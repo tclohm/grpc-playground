@@ -12,6 +12,8 @@ import (
 	"github.com/tclohm/grpc-playground/hello/hellopb"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
 )
 
 type server struct {}
@@ -94,6 +96,27 @@ func (*server) HelloEveryone(stream hellopb.HelloService_HelloEveryoneServer) er
 			return err
 		}
 	}
+}
+
+func (*server) HelloWithDeadline(ctx context.Context, req *hellopb.HelloWithDeadlineRequest) (*hellopb.HelloWithDeadlineResponse, error) {
+	log.Printf("Hello invoked with %v", req)
+	for i := 0 ; i < 3 ; i++ {
+		if ctx.Err() == context.Canceled {
+			fmt.Println("Client canceled request")
+			return nil, status.Error(codes.DeadlineExceeded, "The client canceled the request")
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	firstName := req.GetHello().GetFirstName()
+
+	result := "Hello " + firstName
+
+	res := &hellopb.HelloWithDeadlineResponse{
+		Result: result,
+	}
+
+	return res, nil
 }
 
 func main() {

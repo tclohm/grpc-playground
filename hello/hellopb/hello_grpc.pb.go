@@ -30,6 +30,8 @@ type HelloServiceClient interface {
 	LongHello(ctx context.Context, opts ...grpc.CallOption) (HelloService_LongHelloClient, error)
 	// Bi-Directional Streaming
 	HelloEveryone(ctx context.Context, opts ...grpc.CallOption) (HelloService_HelloEveryoneClient, error)
+	// Unary with deadline
+	HelloWithDeadline(ctx context.Context, in *HelloWithDeadlineRequest, opts ...grpc.CallOption) (*HelloWithDeadlineResponse, error)
 }
 
 type helloServiceClient struct {
@@ -146,6 +148,15 @@ func (x *helloServiceHelloEveryoneClient) Recv() (*HelloEveryoneResponse, error)
 	return m, nil
 }
 
+func (c *helloServiceClient) HelloWithDeadline(ctx context.Context, in *HelloWithDeadlineRequest, opts ...grpc.CallOption) (*HelloWithDeadlineResponse, error) {
+	out := new(HelloWithDeadlineResponse)
+	err := c.cc.Invoke(ctx, "/greet.HelloService/HelloWithDeadline", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HelloServiceServer is the server API for HelloService service.
 // All implementations must embed UnimplementedHelloServiceServer
 // for forward compatibility
@@ -158,6 +169,8 @@ type HelloServiceServer interface {
 	LongHello(HelloService_LongHelloServer) error
 	// Bi-Directional Streaming
 	HelloEveryone(HelloService_HelloEveryoneServer) error
+	// Unary with deadline
+	HelloWithDeadline(context.Context, *HelloWithDeadlineRequest) (*HelloWithDeadlineResponse, error)
 	//mustEmbedUnimplementedHelloServiceServer()
 }
 
@@ -176,6 +189,9 @@ func (UnimplementedHelloServiceServer) LongHello(HelloService_LongHelloServer) e
 }
 func (UnimplementedHelloServiceServer) HelloEveryone(HelloService_HelloEveryoneServer) error {
 	return status.Errorf(codes.Unimplemented, "method HelloEveryone not implemented")
+}
+func (UnimplementedHelloServiceServer) HelloWithDeadline(context.Context, *HelloWithDeadlineRequest) (*HelloWithDeadlineResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HelloWithDeadline not implemented")
 }
 func (UnimplementedHelloServiceServer) mustEmbedUnimplementedHelloServiceServer() {}
 
@@ -281,6 +297,24 @@ func (x *helloServiceHelloEveryoneServer) Recv() (*HelloEveryoneRequest, error) 
 	return m, nil
 }
 
+func _HelloService_HelloWithDeadline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HelloWithDeadlineRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HelloServiceServer).HelloWithDeadline(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/greet.HelloService/HelloWithDeadline",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HelloServiceServer).HelloWithDeadline(ctx, req.(*HelloWithDeadlineRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // HelloService_ServiceDesc is the grpc.ServiceDesc for HelloService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -291,6 +325,10 @@ var HelloService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Hello",
 			Handler:    _HelloService_Hello_Handler,
+		},
+		{
+			MethodName: "HelloWithDeadline",
+			Handler:    _HelloService_HelloWithDeadline_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
