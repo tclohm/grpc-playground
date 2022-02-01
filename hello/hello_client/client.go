@@ -10,6 +10,8 @@ import (
 	"github.com/tclohm/grpc-playground/hello/hellopb"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
 )
 
 func main() {
@@ -34,7 +36,10 @@ func main() {
 
 	//clientStreaming(c)
 
-	biStreaming(c)
+	//biStreaming(c)
+
+	unaryRequestWithDeadline(c, 5*time.Second)
+	unaryRequestWithDeadline(c, 1*time.Second)
 
 }
 
@@ -214,4 +219,36 @@ func biStreaming(c hellopb.HelloServiceClient) {
 
 	// block until done
 	<-waitc
+}
+
+func unaryRequestWithDeadline(c hellopb.HelloServiceClient, timeout time.Duration) {
+	fmt.Println("starting unary RPC...")
+	req := &hellopb.HelloWithDeadlineRequest{
+		Hello: &hellopb.Hello{
+			FirstName: "Taylor",
+			LastName: "Lohman",
+		},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+
+	defer cancel()
+
+	res, err := c.HelloWithDeadline(ctx, req)
+	if err != nil {
+
+		statusError, ok := status.FromError(err)
+
+		if ok {
+			if statusError.Code() == codes.DeadlineExceeded {
+				fmt.Println("Timeout hit")
+			} else {
+				fmt.Printf("Unexpected error %v", statusError)
+			}
+		} else {
+			log.Fatalf("error while calling hello RPC: %v", err)
+		}
+		return
+	}
+
+	log.Printf("Response from hello: %v", res.Result)
 }
