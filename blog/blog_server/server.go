@@ -6,12 +6,27 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"context"
+
+	
 
 	"github.com/tclohm/grpc-playground/blog/blogpb"
+
 	"google.golang.org/grpc"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var collection *mongo.Collection
+
 type server struct {
+}
+
+type blogItem struct {
+	ID 			int32 	`bson:"_id,omitempty"`
+	AuthorID 	string	`bson:"author_id"`
+	Content 	string 	`bson:"content"`
+	Title 		string 	`bson:"title"`
 }
 
 func main() {
@@ -20,12 +35,17 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	fmt.Println("Blog Service Started")
-
-	client, err := mongo.NewClient("mongodb://localhost:27017")
+	fmt.Println("Connecting to mongodb")
+	// connection
+	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil { log.Fatal(err) }
 
 	err = client.Connect(context.TODO())
 	if err != nil { log.Fatal(err) }
+
+	fmt.Println("Connecting to collection")
+	collection = client.Database("myweblog").Collection("blog")
+
 
 	listener, err := net.Listen("tcp", "0.0.0.0:50051")
 	if err != nil {
@@ -71,6 +91,7 @@ func main() {
 	s.Stop()
 	fmt.Println("Stopping the listener")
 	listener.Close()
-
+	fmt.Println("Closing MongoDB Connection")
+	client.Disconnect(context.TODO())
 	fmt.Println("End of Program")
 }
