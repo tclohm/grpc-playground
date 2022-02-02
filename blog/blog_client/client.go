@@ -38,4 +38,14 @@ func main() {
 		log.Fatalf("Error in creating blog: %v", err)
 	}
 	fmt.Printf("Blog created: %v", created)
+
+
+	fmt.Println("\nReading the blog")
+
+	read, err := c.ReadBlog(context.Background(), &blogpb.ReadBlogRequest{BlogId: created.GetBlog().GetId()})
+	if err != nil {
+		fmt.Printf("Error while reading: %v", err)
+	}
+
+	fmt.Printf("Blog asked for %v", read)
 }
