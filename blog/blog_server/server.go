@@ -139,6 +139,80 @@ func (*server) UpdateBlog(ctx context.Context, req *blogpb.UpdateBlogRequest) (*
 	}, nil
 }
 
+func (*server) DeleteBlog(ctx context.Context, req *blogpb.DeleteBlogRequest) (*blogpb.DeleteBlogResponse, error) {
+	fmt.Println("Delete blog request")
+	oid, err := primitive.ObjectIDFromHex(req.GetBlogId())
+	if err != nil {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			fmt.Sprintf("Cannot parse ID"),
+		)
+	}
+
+	filter := bson.M{"_id": oid}
+
+	res, err := collection.DeleteOne(ctx, filter)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Cannot delete object in MongoDB: %v", err),
+		)
+	}
+
+	if res.DeletedCount == 0 {
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("Cannnot find blog in MongoDB: %v", err),
+		)
+	}
+
+	return &blogpb.DeleteBlogResponse{BlogId: req.GetBlogId()}, nil
+}
+
+func (*server) ListBlog(_ *blogpb.ListBlogRequest, stream blogpb.BlogService_ListBlogServer) error {
+	fmt.Println("List blog request")
+	curr, err := collection.Find(context.Background(), primitive.D{{}})
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Unknown internal error: %v", err),
+		)
+	}
+	defer curr.Close(context.Background())
+
+	for curr.Next(context.Background()) {
+		data := &blogItem{}
+		err := curr.Decode(data)
+		if err != nil {
+			return status.Errorf(
+				codes.Internal,
+				fmt.Sprintf("Unknown internal error: %v", err),
+			)
+		}
+		stream.Send(
+			&blogpb.ListBlogResponse{
+				Blog: 
+					&blogpb.Blog{
+						Id: data.ID.Hex(),
+						AuthorId: data.AuthorID,
+						Content: data.Content,
+						Title: data.Title,
+					},
+			},
+		)
+	}
+
+	if err := curr.Err(); err != nil {
+		return status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Unknown internal error: %v", err),
+		)
+	}
+
+	return nil
+}
+
 type blogItem struct {
 	ID 			primitive.ObjectID 	`bson:"_id,omitempty"`
 	AuthorID 	string				`bson:"author_id"`
