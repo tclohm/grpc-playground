@@ -21,8 +21,13 @@ func main() {
 
 	fmt.Println("Blog Service Started")
 
-	listener, err := net.Listen("tcp", "0.0.0.0:50051")
+	client, err := mongo.NewClient("mongodb://localhost:27017")
+	if err != nil { log.Fatal(err) }
 
+	err = client.Connect(context.TODO())
+	if err != nil { log.Fatal(err) }
+
+	listener, err := net.Listen("tcp", "0.0.0.0:50051")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
