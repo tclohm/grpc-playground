@@ -18,6 +18,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var collection *mongo.Collection
@@ -42,7 +43,7 @@ func (*server) CreateBlog(ctx context.Context, req *blogpb.CreateBlogRequest) (*
 		)
 	}
 
-	oid, ok := res.InsertedID.(string)
+	oid, ok := res.InsertedID.(primitive.ObjectID)
 	if !ok {
 		return nil, status.Errorf(
 			codes.Internal,
@@ -52,7 +53,7 @@ func (*server) CreateBlog(ctx context.Context, req *blogpb.CreateBlogRequest) (*
 
 	return &blogpb.CreateBlogResponse{
 		Blog: &blogpb.Blog{
-			Id: oid,
+			Id: oid.Hex(),
 			AuthorId: blog.GetAuthorId(),
 			Title: blog.GetTitle(),
 			Content: blog.GetContent(),
@@ -61,10 +62,10 @@ func (*server) CreateBlog(ctx context.Context, req *blogpb.CreateBlogRequest) (*
 }
 
 type blogItem struct {
-	ID 			string 	`bson:"_id,omitempty"`
-	AuthorID 	string	`bson:"author_id"`
-	Content 	string 	`bson:"content"`
-	Title 		string 	`bson:"title"`
+	ID 			primitive.ObjectID 	`bson:"_id,omitempty"`
+	AuthorID 	string				`bson:"author_id"`
+	Content 	string 				`bson:"content"`
+	Title 		string 				`bson:"title"`
 }
 
 func main() {
