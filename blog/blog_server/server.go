@@ -13,6 +13,9 @@ import (
 	"github.com/tclohm/grpc-playground/blog/blogpb"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
+
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -22,8 +25,43 @@ var collection *mongo.Collection
 type server struct {
 }
 
+func (*server) CreateBlog(ctx context.Context, req *blogpb.CreateBlogRequest) (*blogpb.CreateBlogResponse, error) {
+	blog := req.GetBlog()
+
+	data := blogItem{
+		AuthorID: 	blog.GetAuthorId(),
+		Title:		blog.GetTitle(),
+		Content: 	blog.GetContent(),
+	}
+
+	res, err := collection.InsertOne(context.Background(), data)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Internal error: %v", err),
+		)
+	}
+
+	oid, ok := res.InsertedID.(string)
+	if !ok {
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Cannot convert to OID"),
+		)
+	}
+
+	return &blogpb.CreateBlogResponse{
+		Blog: &blogpb.Blog{
+			Id: oid,
+			AuthorId: blog.GetAuthorId(),
+			Title: blog.GetTitle(),
+			Content: blog.GetContent(),
+		},
+	}, nil
+}
+
 type blogItem struct {
-	ID 			int32 	`bson:"_id,omitempty"`
+	ID 			string 	`bson:"_id,omitempty"`
 	AuthorID 	string	`bson:"author_id"`
 	Content 	string 	`bson:"content"`
 	Title 		string 	`bson:"title"`
